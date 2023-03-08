@@ -1,4 +1,13 @@
-<h1>THIS IS THE CONNECTION FROM FIRST DATABASE</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
 <?php
 // Check if the user is logged in
 session_start();
@@ -33,3 +42,6 @@ echo '<a href="/cms/logout">Logout</a>';
     <?php endforeach; ?>
 
 </table>
+    
+</body>
+</html>
