@@ -7,7 +7,7 @@ class CentralController
   public $conn;
   public function __construct()
   {
-    $this->database = new Database("db_Central");
+    $this->database = new Database("crystal_sky_db");
     $this->conn = $this->database->connect();
   }
 
@@ -15,7 +15,7 @@ class CentralController
   {
 
     //this should be the dashboard
-    $query = "SELECT * FROM users";
+    $query = "SELECT * FROM cms_users";
     $stmt = $this->conn->prepare($query);
     $stmt->execute();
 
@@ -23,37 +23,19 @@ class CentralController
 
     require_once 'views/dashboard/index.php';
   }
-  public function events()
-  {
-    //this should adding events
-    require_once 'views/dashboard/events.php';
-  }
-  public function addEvent()
-  {
-    //this should adding events
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $date = $_POST['date'];
-    $time = $_POST['time'];
-    $image = $_POST['image'];
 
-    $test = json_encode($title) . json_encode($description) . json_encode($date) . json_encode($time) . json_encode($image);
-    echo $test;
 
-    // $query = "INSERT INTO events (title, description, date, time, image) VALUES (?,?,?,?,?)";
-    // $stmt = $this->conn->prepare($query);
-    // $stmt->execute([$title, $description, $date, $time, $image]);
 
-    header('Location: /cms/index');
-  }
   public function room()
   {
     // get rooms from db
 
     // no database available
-    // $query = "SELECT * FROM rooms";
-    // $stmt = $this->conn->prepare($query);
-    // $stmt->execute();
+    $query = "SELECT * FROM CMS_rooms r JOIN CMS_categories c ON r.category_id = c.id JOIN CMS_room_images i ON r.id = i.room_id";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute();
+
+    $rooms = $stmt->fetchAll();
 
 
     // $rooms = $stmt->fetchAll();
@@ -62,37 +44,78 @@ class CentralController
   }
   public function addRoom()
   {
+      $roomNumber = $_POST['roomNumber'];
+      $CategoryName = $_POST['CategoryName'];
+      $roomPrice = $_POST['roomPrice'];
+      $roomStatus = $_POST['roomStatus'];
+      $roomDescription = $_POST['roomDescription'];
 
+  
+      // Upload the image to the server and database
+      $media = $_FILES['roomImage']['name'];
+      $file_extension = pathinfo($_FILES['roomImage']['name'], PATHINFO_EXTENSION);
+      $filename = uniqid('room_') . '.' . $file_extension;
+      $target = "media/Rooms" . $filename;
+  
+      if (move_uploaded_file($_FILES['roomImage']['tmp_name'], $target)) {
+          // Check if the room already exists in the database
+          $query = "SELECT * FROM CMS_rooms WHERE room_number = ?";
+          $stmt = $this->conn->prepare($query);
+          $stmt->execute([$roomNumber]);
+          $result = $stmt->fetch();
+  
+          if ($result) {
+              // Delete the uploaded file if it already exists in the database
+              unlink($target);
+              echo "Room already exists";
+          } else {
+              // Check if the category exists in the database
+              $query = "SELECT id FROM CMS_categories WHERE name = ?";
+              $stmt = $this->conn->prepare($query);
+              $stmt->execute([$CategoryName]);
+              $category = $stmt->fetch();
+  
+              if (!$category) {
+                  // Insert the category into the database
+                  $query = "INSERT INTO CMS_categories (name) VALUES (?)";
+                  $stmt = $this->conn->prepare($query);
+                  $stmt->execute([$CategoryName]);
+  
+                  $categoryId = $this->conn->lastInsertId();
+              } else {
+                  $categoryId = $category['id'];
+              }
+  
+              // Insert the room data into the database
+              $query = "INSERT INTO CMS_rooms (category_id, room_number, price, status, description)
+              VALUES (?, ?, ?, ?, ?)";
+              $stmt = $this->conn->prepare($query);
+              $stmt->execute([$categoryId, $roomNumber, $roomPrice, $roomStatus, $roomDescription]);
 
-    $roomNumber = $_POST['roomNumber'];
-    $roomType = $_POST['roomType'];
-    $roomPrice = $_POST['roomPrice'];
-    $roomStatus = $_POST['roomStatus'];
-    $roomImage = $_POST['roomImage'];
+              $query = "INSERT INTO CMS_room_images (room_id, image) VALUES (?, ?)";
+              $stmt = $this->conn->prepare($query);
+              $stmt->execute([$this->conn->lastInsertId(), $filename]);
 
-    $test = json_encode($roomNumber) . json_encode($roomType) . json_encode($roomPrice) . json_encode($roomStatus) . json_encode($roomImage);
-    echo $test;
-
-    // $query = "INSERT INTO rooms (roomNumber, roomType, roomPrice, roomStatus, roomImage) VALUES (?,?,?,?,?)";
-    // $stmt = $this->conn->prepare($query);
-    // $stmt->execute([$roomNumber, $roomType, $roomPrice, $roomStatus, $roomImage]);
-
-
-    // header('Location: /cms/index');
-
-
-
-
+  
+              echo "Room added successfully";
+          }
+      } else {
+          echo "There was an error uploading the file.";
+      }
+  
+      header('Location: /cms/room');
   }
+  
+  
+
   public function editRoom()
   {
     //this should edit rooms
-    // get room by id
-    // $id = $_GET['id'];
-    // $query = "SELECT * FROM rooms WHERE id = ?";
-    // $stmt = $this->conn->prepare($query);
-    // $stmt->execute([$id]);
-    // $room = $stmt->fetch();
+    $query = "SELECT * FROM CMS_rooms r JOIN CMS_categories c ON r.category_id = c.id JOIN CMS_room_images i ON r.id = i.room_id";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute();
+
+    $rooms = $stmt->fetchAll();
 
 
 
@@ -103,31 +126,94 @@ class CentralController
     //submit edited room
     $id = $_POST['id'];
     $roomNumber = $_POST['roomNumber'];
-    $roomType = $_POST['roomType'];
+    $CategoryName = $_POST['CategoryName'];
     $roomPrice = $_POST['roomPrice'];
     $roomStatus = $_POST['roomStatus'];
-    $roomImage = $_POST['roomImage'];
-  
-    $test = json_encode($id) . json_encode($roomNumber) . json_encode($roomType) . json_encode($roomPrice) . json_encode($roomStatus) . json_encode($roomImage);
-    echo $test;
+    $roomDescription = $_POST['roomDescription'];
 
-    // $query = "UPDATE rooms SET roomNumber = ?, roomType = ?, roomPrice = ?, roomStatus = ?, roomImage = ? WHERE id = ?";
-    // $stmt = $this->conn->prepare($query);
-    // $stmt->execute([$roomNumber, $roomType, $roomPrice, $roomStatus, $roomImage, $id]);
+    // Upload the image to the server and database
+    $media = $_FILES['roomImage']['name'];
+    $file_extension = pathinfo($_FILES['roomImage']['name'], PATHINFO_EXTENSION);
+    $filename = uniqid('room_') . '.' . $file_extension;
+    $target = "media/Rooms/" . $filename;
 
-    // header('Location: /cms/index');
+    //upload the image to the server
+    if (move_uploaded_file($_FILES['roomImage']['tmp_name'], $target)) {
+      echo "File uploaded successfully";
+
+    } else {
+      echo "There was an error uploading the file.";
+    }
+
+    
+
+    // update data in the database with the new data from the form
+    $query = "UPDATE CMS_rooms SET room_number = ?, price = ?, status = ?, description = ? WHERE id = ?";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([$roomNumber, $roomPrice, $roomStatus, $roomDescription, $id]);
+
+    $query = "UPDATE CMS_room_images SET image = ? WHERE room_id = ?";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([$filename, $id]);
+
+    // Check if the category exists in the database
+    $query = "SELECT id FROM CMS_categories WHERE name = ?";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([$CategoryName]);
+
+
+    $category = $stmt->fetch();
+
+
+    if (!$category) {
+      // Insert the category into the database
+      $query = "INSERT INTO CMS_categories (name) VALUES (?)";
+      $stmt = $this->conn->prepare($query);
+      $stmt->execute([$CategoryName]);
+
+      $categoryId = $this->conn->lastInsertId();
+    } else {
+      $categoryId = $category['id'];
+    }
+
+    // Insert the room data into the database
+    $query = "UPDATE CMS_rooms SET category_id = ? WHERE id = ?";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([$categoryId, $id]);
+
+
+    //get the error message if there is any
+    $error = $stmt->errorInfo();
+
+    if ($error[0] != 00000) {
+      echo "There was an error updating the room";
+    } else {
+      echo "Room updated successfully";
+    }
+
+    // header('Location: /cms/room');
+   
+
+
+
+
 
   }
 
   public function deleteRoom()
   {
-    //delete room
+    //delete room by id connected in CMS_room_images table and CMS_rooms table
     $id = $_GET['id'];
-    $query = "DELETE FROM rooms WHERE id = ?";
+    $query = "DELETE FROM CMS_room_images WHERE room_id = ?";
     $stmt = $this->conn->prepare($query);
     $stmt->execute([$id]);
 
-    header('Location: /cms/index');
+    $query = "DELETE FROM CMS_rooms WHERE id = ?";
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([$id]);
+
+    header('Location: /cms/room');
+   
   }
 
   public function login()
@@ -145,11 +231,11 @@ class CentralController
 
   public function authenticate()
   {
-    $email = $_POST['email'];
+    $username = $_POST['username'];
     $password = ($_POST['password']);
     // $password = md5($_POST['password']);
-    $stmt = $this->conn->prepare('SELECT * FROM users WHERE email = ? AND password = ?');
-    $stmt->execute([$email, $password]);
+    $stmt = $this->conn->prepare('SELECT * FROM cms_users WHERE username = ? AND password = ?');
+    $stmt->execute([$username, $password]);
     $user = $stmt->fetch();
 
 

@@ -10,7 +10,7 @@
 
 <?php
   // Check if the user is already logged in
-  if (isset($_SESSION['user_id'])) {
+  if (isset($_SESSION['id'])) {
     header('Location: ./Dashboard/index.php');
     exit;
   }
@@ -24,11 +24,11 @@
 <?php endif; ?>
 
 <form action="/cms/authenticate" method="post">
-  <label for="email">Email:</label><br>
-  <input type="email" name="email" id="email"><br>
+  <label for="username">Username:</label><br>
+  <input type="text" name="username" id="username"><br>
   <label for="password">Password:</label><br>
   <input type="password" name="password" id="password"><br><br>
-  <input type="submit" value="Log in">
+  <input type="submit" value="Login">
 </form>
   
 </body>
